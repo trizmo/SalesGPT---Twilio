@@ -433,7 +433,10 @@ class SalesGPT(Chain):
         agent_name = self.salesperson_name
         output_only = output
         # remove <END_OF_TURN> from the output_only
-        output_only = output_only.replace("<END_OF_TURN>", "")
+        if("<END_OF_TURN>" in output_only):
+            output_only = output_only.replace("<END_OF_TURN>", "")
+        if("<END_OF_CALL>" in output_only):
+            output_only = output_only.replace("<END_OF_CALL>", "")
         output = agent_name + ": " + output
         if "<END_OF_TURN>" not in output:
             output += " <END_OF_TURN>"
@@ -452,8 +455,11 @@ class SalesGPT(Chain):
             # print()
             # print(f"Output: {output.replace('<END_OF_TURN>', '')}")
 
+            # save output to txt file
+            with open("output_text.txt", "a") as f:
+                f.write(f"{output_only}\n")
 
-            eleven_speech(output_only, output_filename)
+            # eleven_speech(output_only, output_filename)
             # text_to_speech(output_only, output_filename)
 
             # To play the MP3 file (on macOS, for example), you can use:

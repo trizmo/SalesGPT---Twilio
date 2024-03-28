@@ -12,9 +12,12 @@ print(f"Auth Token: {auth_token}")
 
 client = Client(account_sid, auth_token)
 
+# Get Base URL
+BASE_URL = os.getenv("BASE_URL_NGROK")
+
 # The URL for Twilio to request when the call is answered
 # This should be a publicly accessible URL where you host your instructions (TwiML) for the call
-answer_url = 'https://cda6-47-151-56-38.ngrok-free.app/answered_call'
+answer_url =  BASE_URL + '/answered_call'
 
 def make_call(phone_number):
     # Make the call

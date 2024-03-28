@@ -54,7 +54,7 @@ def process_call(isVerbose, isConfig, use_config_path):
     sales_agent.seed_agent()
     print("=" * 10)
     cnt = 0
-    max_num_turns = 10  # Assuming a default value, adjust as needed
+    max_num_turns = 15  # Assuming a default value, adjust as needed
     while cnt != max_num_turns:
         cnt += 1
         if cnt == max_num_turns:

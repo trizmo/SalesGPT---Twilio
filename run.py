@@ -20,7 +20,7 @@ def process_call(isVerbose, isConfig, use_config_path):
     verbose = isVerbose
     config_path = use_config_path if isConfig else ""
 
-    llm = ChatLiteLLM(temperature=0.2, model_name="gpt-4-0125-preview")
+    llm = ChatLiteLLM(temperature=0.2, model_name="gpt-4-turbo-preview")
 
     if not config_path:
         print("No agent config specified, using a standard config")

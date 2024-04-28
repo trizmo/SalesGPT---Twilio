@@ -19,7 +19,7 @@ from salesgpt.stages import CONVERSATION_STAGES
 from salesgpt.templates import CustomPromptTemplateForTools
 from salesgpt.tools import get_tools, setup_knowledge_base
 
-from lib.eleven_speech import eleven_speech
+from lib.eleven_speech2 import eleven_speech
 from lib.text_to_speech import text_to_speech
 import os
 
@@ -459,7 +459,7 @@ class SalesGPT(Chain):
             with open("output_text.txt", "a") as f:
                 f.write(f"{output_only}\n")
 
-            # eleven_speech(output_only, output_filename)
+            eleven_speech(output_only, output_filename)
             # text_to_speech(output_only, output_filename)
 
             # To play the MP3 file (on macOS, for example), you can use:

@@ -1,5 +1,5 @@
 from flask import Flask, request, Response
-from twilio.twiml.voice_response import VoiceResponse, Gather, Stream, Start
+from twilio.twiml.voice_response import VoiceResponse, Gather, Stream, Start, Connect
 from lib.make_call import make_call
 from run import process_call
 import threading, os, time
@@ -7,6 +7,7 @@ from lib.process_speech_input import process_speech_input
 from queue import Queue
 from lib.speech_inputs import save_speech_input
 from dotenv import load_dotenv
+from lib.eleven_speech_stream import eleven_speech_stream
 
 # Load environment variables
 load_dotenv()
@@ -20,6 +21,7 @@ speech_inputs = Queue()
 BASE_URL = os.getenv("BASE_URL_NGROK")
 
 voice = 'Polly.Salli-Neural'
+sales_rep = 'examples/endline_rep.json'
 
 def handle_speech_input():
     while True:
@@ -42,49 +44,8 @@ def initiate_call():
 
 # Url to handle the user input. When the call is answered Twilio will make a post request to /answered_call
 @app.route("/answered_call", methods=['POST'])
-def answered_call():
-    file_path = "output_text.txt"
-    print(" ----- answered_call -----")
-    # delete the file if it exists
-    if os.path.exists(file_path):
-        os.remove(file_path)
-
-    # Create a thread to run process_call in the background
-    thread = threading.Thread(target=process_call, args=(True, True, 'examples/endline_rep.json'))
-    thread.start()
-    print("Answered call. Starting SalesGPT. ::")
-
-    # Wait for the MP3 file to be generated
-    timeout = 30  # Maximum wait time in seconds
-    start_time = time.time()
-
-    while not os.path.exists(file_path) and (time.time() - start_time) < timeout:
-        print('Waiting for text file to generate...')
-        time.sleep(1)  # Wait 1 second before checking again
-
-    response = VoiceResponse()
-
-    # pause for 3 seconds
-    response.pause(length=3)
-
-    if os.path.exists(file_path):
-        # get text from file
-        with open(file_path, 'r') as file:
-            text = file.read()
-
-        # File is ready, play the MP3 and gather user response
-        response.say(text, voice=voice)
-
-        # Send the user to gather input
-        response.redirect(url='/gather_input')
-
-    else:
-        # File wasn't generated in time, handle the error case
-        response.say("Error 1. We are experiencing technical difficulties. Please try again later.")
-
-    return str(response)
 # def answered_call():
-#     file_path = "static/audio/output.mp3"
+#     file_path = "output_text.txt"
 #     print(" ----- answered_call -----")
 #     # delete the file if it exists
 #     if os.path.exists(file_path):
@@ -100,20 +61,21 @@ def answered_call():
 #     start_time = time.time()
 
 #     while not os.path.exists(file_path) and (time.time() - start_time) < timeout:
-#         print('Waiting for MP3 file to be generated...')
+#         print('Waiting for text file to generate...')
 #         time.sleep(1)  # Wait 1 second before checking again
 
 #     response = VoiceResponse()
 
+#     # pause for 3 seconds
+#     response.pause(length=3)
+
 #     if os.path.exists(file_path):
-#         # get length of audio
-#         audio_length = 0
-#         audio_length = os.path.getsize(file_path)
-#         audio_length = audio_length / 1000
-#         print(f" -- Audio length: {audio_length} seconds")
+#         # get text from file
+#         with open(file_path, 'r') as file:
+#             text = file.read()
 
 #         # File is ready, play the MP3 and gather user response
-#         response.play(url= BASE_URL + "/static/audio/output.mp3")
+#         response.say(text, voice=voice)
 
 #         # Send the user to gather input
 #         response.redirect(url='/gather_input')
@@ -123,49 +85,89 @@ def answered_call():
 #         response.say("Error 1. We are experiencing technical difficulties. Please try again later.")
 
 #     return str(response)
-
-# Process the users speech and give to SalesGPT
-# Get audio from SalesGPT and play it for the user
-# Redirect to gather_input to get the users response
-@app.route("/process_speech", methods=['POST'])
-def process_speech():
-    print(" ----- process_speech -----")
-    file_path = "output_text.txt"
-
+def answered_call():
+    file_path = "static/audio/output.mp3"
+    print(" ----- answered_call -----")
     # delete the file if it exists
     if os.path.exists(file_path):
         os.remove(file_path)
 
-    speech_text = request.form.get("SpeechResult", "")
-    confidence = request.form.get("Confidence", "0")
-    print(f"process_speech :: Received speech input: {speech_text} (Confidence: {confidence})")
-    save_speech_input(speech_text)
+    # Create a thread to run process_call in the background
+    thread = threading.Thread(target=process_call, args=(True, True, sales_rep))
+    thread.start()
+    print("Answered call. Starting SalesGPT. ::")
 
     # Wait for the MP3 file to be generated
     timeout = 30  # Maximum wait time in seconds
     start_time = time.time()
+
     while not os.path.exists(file_path) and (time.time() - start_time) < timeout:
-        print('Waiting for output text file to be generated...')
+        print('Waiting for MP3 file to be generated...')
         time.sleep(1)  # Wait 1 second before checking again
 
     response = VoiceResponse()
 
     if os.path.exists(file_path):
-        # get text from file
-        with open(file_path, 'r') as file:
-            text = file.read()
+        # get length of audio
+        audio_length = 0
+        audio_length = os.path.getsize(file_path)
+        audio_length = audio_length / 1000
+        print(f" -- Audio length: {audio_length} seconds")
 
         # File is ready, play the MP3 and gather user response
-        response.say(text, voice=voice)
+        response.play(url= BASE_URL + "/static/audio/output.mp3")
 
         # Send the user to gather input
         response.redirect(url='/gather_input')
 
     else:
         # File wasn't generated in time, handle the error case
-        response.say("Error 2. We are experiencing technical difficulties. Please try again later.")
-    
+        response.say("Error 1. We are experiencing technical difficulties. Please try again later.")
+
     return str(response)
+
+# Process the users speech and give to SalesGPT
+# Get audio from SalesGPT and play it for the user
+# Redirect to gather_input to get the users response
+@app.route("/process_speech", methods=['POST'])
+# def process_speech():
+#     print(" ----- process_speech -----")
+#     file_path = "output_text.txt"
+
+#     # delete the file if it exists
+#     if os.path.exists(file_path):
+#         os.remove(file_path)
+
+#     speech_text = request.form.get("SpeechResult", "")
+#     confidence = request.form.get("Confidence", "0")
+#     print(f"process_speech :: Received speech input: {speech_text} (Confidence: {confidence})")
+#     save_speech_input(speech_text)
+
+#     # Wait for the MP3 file to be generated
+#     timeout = 30  # Maximum wait time in seconds
+#     start_time = time.time()
+#     while not os.path.exists(file_path) and (time.time() - start_time) < timeout:
+#         print('Waiting for output text file to be generated...')
+#         time.sleep(1)  # Wait 1 second before checking again
+
+#     response = VoiceResponse()
+
+#     if os.path.exists(file_path):
+#         # get text from file
+#         with open(file_path, 'r') as file:
+#             text = file.read()
+
+#         # File is ready, play the MP3 and gather user response
+#         response.say(text, voice=voice)
+
+#         # Send the user to gather input
+#         response.redirect(url='/gather_input')
+
+#     else:
+#         # File wasn't generated in time, handle the error case
+#         response.say("Error 2. We are experiencing technical difficulties. Please try again later.")
+    
+#     return str(response)
 # def process_speech():
 #     print(" ----- process_speech -----")
 #     file_path = "static/audio/output.mp3"
@@ -210,6 +212,55 @@ def process_speech():
 #         response.say("Error 2. We are experiencing technical difficulties. Please try again later.")
     
 #     return str(response)
+def process_speech():
+    print(" ----- process_speech STREAM -----")
+    file_path = "output_text.txt"
+
+    # delete the file if it exists
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+    speech_text = request.form.get("SpeechResult", "")
+    confidence = request.form.get("Confidence", "0")
+    print(f"process_speech :: Received speech input: {speech_text} (Confidence: {confidence})")
+    save_speech_input(speech_text)
+
+    # Wait for the MP3 file to be generated
+    timeout = 30  # Maximum wait time in seconds
+    start_time = time.time()
+    while not os.path.exists(file_path) and (time.time() - start_time) < timeout:
+        print('Waiting for speech inputs to be ready')
+        time.sleep(1)  # Wait 1 second before checking again
+
+
+    response = VoiceResponse()
+
+    if os.path.exists(file_path):
+        print(f" -- Speech text ready. Ready to stream")
+
+        # File is ready, play the MP3 and gather user response
+        stream_url = BASE_URL + "/stream_audio"  # Your Flask app's streaming endpoint
+        print(f" -- Stream URL: {stream_url}")
+
+        response.play(url=stream_url)
+
+        # Send the user to gather input
+        response.redirect(url='/gather_input')
+
+    else:
+        # File wasn't generated in time, handle the error case
+        response.say("Error 2. We are experiencing technical difficulties. Please try again later.")
+    
+    return str(response)
+
+@app.route('/stream_audio', methods=['GET'])
+def stream_audio():
+    print(" ----- stream_audio -----")
+    file_path = "output_text.txt"
+    with open(file_path, 'r') as file:
+        text = file.read()
+    
+    return Response(eleven_speech_stream(text), mimetype='audio/mpeg')
 
 # Gather the users speech input and send it to to process_speech
 @app.route("/gather_input", methods=['POST'])
@@ -226,14 +277,9 @@ def gather_input():
         speechModel='phone_call',
         ) 
     response.append(gather)
-
-    # If the user doesn't say anything for more than 5 seconds, then hang up
-    # response.pause(length=5)
-    # response.say("We didn't receive any input. Goodbye.")
-    # print('We didn\'t receive any input. Goodbye.')
-    # response.hangup()
     
     return str(response)
 
+                                                   
 if __name__ == "__main__":
     app.run(debug=True)

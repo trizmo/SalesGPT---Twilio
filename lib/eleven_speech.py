@@ -14,12 +14,13 @@ santa_voice_id = "Gqe8GJJLg3haJkTwYj2L"
 wesley_voice_id = "GduC2RjzvNKCozZY5lPD"
 david_voice_id = "y1adqrqs4jNaANXsIZnD"
 jameson_voice_id = "Mu5jxyqZOLIGltFpfalg"
+natasha_voice_id = "lNXoiG0t150DtDjGdo2y"
 
 client = Client(account_sid, auth_token)
 
 
 def eleven_speech(text, output_filename):
-    url = "https://api.elevenlabs.io/v1/text-to-speech/" + jameson_voice_id
+    url = "https://api.elevenlabs.io/v1/text-to-speech/" + natasha_voice_id
 
     headers = {
     "Accept": "audio/mpeg",
